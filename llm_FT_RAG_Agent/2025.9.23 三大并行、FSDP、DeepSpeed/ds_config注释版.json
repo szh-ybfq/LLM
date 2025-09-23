@@ -1,0 +1,59 @@
+{
+    "train_batch_size": 32,  # 总训练批次大小（所有GPU之和）
+    "train_micro_batch_size_per_gpu": 4,  # 单GPU微批次大小（需与代码中保持一致）
+    "gradient_accumulation_steps": 4,  # 梯度累积步数（与TrainingArguments一致）
+    
+    # ZeRO优化器配置（针对14B模型，推荐Stage 3节省显存）
+    "zero_optimization": {
+        "stage": 3,  # Stage 3：分片参数、梯度、优化器状态
+        "offload_optimizer": {
+            "device": "cpu",  # 优化器状态卸载到CPU（节省GPU显存）
+            "pin_memory": true
+        },
+        "offload_param": {
+            "device": "cpu",  # 参数卸载到CPU（超大规模模型适用）
+            "pin_memory": true
+        },
+        "overlap_comm": true,  # 通信与计算重叠，加速训练
+        "contiguous_gradients": true,  # 梯度连续化，减少内存碎片
+        "sub_group_size": 1e9,  # 子分组大小（控制通信粒度）
+        "reduce_bucket_size": 65536,  # 梯度归并桶大小
+        "stage3_prefetch_bucket_size": 65536,  # Stage 3预取桶大小
+        "stage3_param_persistence_threshold": 1024  # 参数持久化阈值
+    },
+    
+    # 混合精度训练配置
+    "fp16": {
+        "enabled": true,  # 启用FP16混合精度
+        "loss_scale": 0,  # 自动调整损失缩放
+        "loss_scale_window": 1000,
+        "initial_scale_power": 16,
+        "hysteresis": 2,
+        "min_loss_scale": 1
+    },
+    
+    # 优化器配置（AdamW）
+    "optimizer": {
+        "type": "AdamW",
+        "params": {
+            "lr": 2e-5,  # 学习率（与代码中保持一致）
+            "betas": [0.9, 0.95],
+            "eps": 1e-8,
+            "weight_decay": 0.01
+        }
+    },
+    
+    # 学习率调度器
+    "scheduler": {
+        "type": "WarmupLR",
+        "params": {
+            "warmup_min_lr": 0,
+            "warmup_max_lr": 2e-5,
+            "warmup_num_steps": 100  # 热身步数（与TrainingArguments一致）
+        }
+    },
+    
+    # 日志配置
+    "steps_per_print": 10,  # 每10步打印一次日志
+    "wall_clock_breakdown": false
+}
