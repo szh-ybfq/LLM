@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  milvus:
+    image: milvusdb/milvus:v2.3.4
+    container_name: milvus-standalone
+    restart: always
+    environment:
+      - MILVUS_LOG_LEVEL=info
+    volumes:
+      - milvus_data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    networks:
+      - rag_network
+
+  rag-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rag-api
+    restart: always
+    environment:
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - CUDA_VISIBLE_DEVICES=0  # 指定使用的GPU，若没有GPU可移除
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+    ports:
+      - "8000:8000"
+    depends_on:
+      - milvus
+    networks:
+      - rag_network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+networks:
+  rag_network:
+    driver: bridge
+
+volumes:
+  milvus_data:
